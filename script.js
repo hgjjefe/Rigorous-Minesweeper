@@ -95,10 +95,10 @@ function click(event) {
   status.innerHTML = 'Mines remaining: ' + remaining;
  // Left click
   if (event.which == 1 && getSpriteName(tile[row][column]) != 'flag') {
-    if (board[row][column] == MINE) {   // Clicked on a mine
+    if (board[row][column] == MINE) {   // Clicked on a mine -> reveeal all unflagged mines
       for (let row = 0; row < rows; row++)
         for (let column = 0; column < columns; column++) {
-          if (board[row][column] == MINE) {   // Clicked on a mine
+          if (board[row][column] == MINE && getSpriteName(tile[row][column]) != 'flag') {   // Clicked on a mine
             tile[row][column].src = './images/mine.png';
           }
           if (board[row][column] != MINE && getSpriteName(tile[row][column]) == 'flag') {
@@ -117,7 +117,7 @@ function click(event) {
  // Reveal the tile if it is not a mine
 function reveal(row, column) {
   if (column < 0 || row < 0 || column >= columns || row >= rows) return; // Out of bounds
-  if (getSpriteName(tile[row][column]) != 'hidden') return; // Already revealed or flagged
+  if (getSpriteName(tile[row][column]) != 'hidden' && getSpriteName(tile[row][column]) != 'flag') return; // Already revealed or flagged
   tile[row][column].src = './images/' + board[row][column] + '.png';
   if (board[row][column] != MINE && getSpriteName(tile[row][column]) == 'hidden')
     revealed++;
