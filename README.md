@@ -5,3 +5,7 @@ You can also left click or right click the hidden tiles to enter **PROOF MODE**.
 Similarly, you can left click a hidden tile to create a hypothetical empty space, and you can arrive at a contradiction based on that.
 
 Pressing middle mouse button on a number will place green flags if there are unflagged neighboring hidden tiles such that they make fractional frags. Green flags can help you reveal nearby tiles that also have all of those green flags as neighbors. If you want to remove the green flags, just press middle mouse button again.
+
+**Credits:**
+The code is based on _The Minesweeper game in 100 lines of JavaScript_:
+https://slicker.me/javascript/mine/minesweeper.htm
