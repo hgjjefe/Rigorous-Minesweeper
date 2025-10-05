@@ -1,0 +1,1 @@
+This is minesweeper but with a twist - you can only do logically valid moves and not allowed to guess randomly. When a number matches the number of neighboring hidden tiles, you can left click the **numbers** to reveal hidden tiles, and right click the **numbers** to flag the hidden tiles
