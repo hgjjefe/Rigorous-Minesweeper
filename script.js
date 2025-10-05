@@ -28,12 +28,17 @@ let MINE = -1;   // Constant to represent a mine in the board array
 let NUMBERS = [null, '1', '2', '3', '4', '5', '6', '7', '8'];
 let first_clicked = false;
 let proof_mode = false;
+let green_flagged = false;  // True if a tile is green flagged
+let numerator = 0;  // Used to calculate probability for green flags
+let denominator = 0; // Used to calculate probability for green flags
  
 let board = new Array(rows);  // Integer array to represent the board
 let tile = new Array(rows);   // Image array to represent the tiles
+let overlay = new Array(rows); // Overlay array to represent the overlay text (for green flags)
 for (let i = 0; i < board.length; i++) {
   board[i] = new Array(columns);
   tile[i] = new Array(columns)
+  overlay[i] = new Array(columns);
 }
  
 init();  
@@ -62,6 +67,7 @@ function getNeighbors(row, column) {
 }
 
 function exitProofMode(contradiction = false) {
+  console.log('Exiting proof mode. Contradiction: ' + contradiction);
   proof_mode = false;
   for (let row = 0; row < rows; row++){
     for (let column = 0; column < columns; column++){
@@ -70,10 +76,21 @@ function exitProofMode(contradiction = false) {
           reveal(row, column);  // Reveal the blue flag tile if contradiction found
         else
           setTile(row, column, 'hidden');
-      }else if (getSpriteName(tile[row][column]) == 'yellow_flag')
+      }else if (getSpriteName(tile[row][column]) == 'yellow_flag'){
         setTile(row, column, 'hidden');
+      }
       else if (getSpriteName(tile[row][column]) == 'mist')
         setTile(row, column, 'hidden');
+      else if (getSpriteName(tile[row][column]) == 'yellow_0'){
+        if (contradiction){
+          setTile(row, column, 'flag');
+          remaining_mines -= 1;
+        }else
+          setTile(row, column, 'hidden');
+      }else if (getSpriteName(tile[row][column]) == 'green_flag'){
+        setTile(row, column, 'hidden');
+      }
+      overlay[row][column].innerHTML = '';
     }
   }
 }
@@ -104,6 +121,20 @@ function init(event) {
       tile[row][column].id = index;
       display.appendChild(tile[row][column]);
       board[row][column] = 0;
+      // Initialize overlay (for green flags)
+      overlay[row][column] = document.createElement('div');
+      overlay[row][column].style = `position:absolute; height:30px; 
+                                    width:30px; top:${row*30}px; left:${column*30}px; 
+                                    text-align: center; line-height: 30px;
+                                    font-size: 20px;
+                                    color: yellow;
+                                    pointer-events: none;
+                                    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+                                    font-weight: 1000;
+                                    `;
+      overlay[row][column].innerHTML = '';
+      display.appendChild(overlay[row][column]);
+
     }
   // Randomly generate mines
   if (!use_layout) {
@@ -183,7 +214,7 @@ function click(event) {
       let flags = 0;
       for (let [i, j] of getNeighbors(row, column)) {
         if (getSpriteName(tile[i][j]) == 'hidden') hidden++;
-        if (getSpriteName(tile[i][j]) == 'flag') flags++;
+        if (getSpriteName(tile[i][j]) == 'flag' || getSpriteName(tile[i][j]) == 'green_flag') flags++;
       }
       // If hidden + flags = number, flag all hidden tiles
       if (hidden + flags == number) {
@@ -195,7 +226,8 @@ function click(event) {
         }
       }
       debug.innerHTML = "Number:" + number + ', Hiddens: ' + hidden + ', Flags: ' + flags;
-    } else if (getSpriteName(tile[row][column]) == 'hidden' && proof_mode == false) { // right click on hidden tiles
+    }  // right click on hidden tiles
+    else if (getSpriteName(tile[row][column]) == 'hidden') {
       setTile(row, column, 'blue_flag');   // Hypothetical flag
       proof_mode = true;   // Enter proof mode
     } 
@@ -205,20 +237,21 @@ function click(event) {
   else if (event.which == 3 && proof_mode) {
     if (getSpriteName(tile[row][column]) == 'blue_flag') { // right click on hypothetical flags -> exit proof mode
       exitProofMode();
-    }else if (NUMBERS.includes(getSpriteName(tile[row][column])) ){ // right click on numbers
+    }  // right click on numbers
+    else if (NUMBERS.includes(getSpriteName(tile[row][column])) ){
       let number = parseInt(getSpriteName(tile[row][column]));
       // Count the number of hidden tiles around the number
       let hidden = 0;
-      let flags = 0;
+      let flags = 0;  // Count all types of flags
       for (let [i, j] of getNeighbors(row, column)) {
         if (getSpriteName(tile[i][j]) == 'hidden') hidden++;
-        if (getSpriteName(tile[i][j]) == 'flag' || getSpriteName(tile[i][j]) == 'blue_flag') flags++;
+        if (getSpriteName(tile[i][j]) == 'flag' || getSpriteName(tile[i][j]) == 'blue_flag' || getSpriteName(tile[i][j]) == 'yellow_flag' || getSpriteName(tile[i][j]) == 'green_flag') flags++;
       }
       // If hidden + flags = number, flag all hidden tiles
       if (hidden + flags == number) {
         for (let [i, j] of getNeighbors(row, column)){
-          if (getSpriteName(tile[i][j]) == 'hidden'){
-            setTile(i, j, 'yellow_flag');    // Flag used in proof mode
+          if (getSpriteName(tile[i][j]) == 'hidden' || getSpriteName(tile[i][j]) == 'green_flag'){
+            setTile(i, j, 'yellow_flag');    // Temporary flag used in proof mode
             remaining_mines -= 1;
           }
         }
@@ -227,7 +260,7 @@ function click(event) {
     event.preventDefault();
   }
  // ======== LEFT CLICK (Normal mode) =========
-  if (event.which == 1 && !proof_mode && getSpriteName(tile[row][column]) != 'flag') {
+  else if (event.which == 1 && !proof_mode && getSpriteName(tile[row][column]) != 'flag') {
     // left click on numbers
     if (NUMBERS.includes(getSpriteName(tile[row][column])) ) { // left click on numbers
       let number = parseInt(getSpriteName(tile[row][column]));
@@ -241,35 +274,96 @@ function click(event) {
         for (let [i, j] of getNeighbors(row, column))
           if (getSpriteName(tile[i][j]) == 'hidden') reveal(i, j);
       }
+    } // left click on hidden tiles -> Enter proof mode (the goal is to prove this is a mine)
+    else if (getSpriteName(tile[row][column]) == 'hidden') { 
+      setTile(row, column, 'yellow_0');  
+      proof_mode = true;  
     }
   }
-  
-// ======== LEFT CLICK (proof mode) =========
-if (event.which == 1 && proof_mode) {
+  // ======== LEFT CLICK (proof mode) =========
+  else if (event.which == 1 && proof_mode) {
   // left click on numbers
     if (NUMBERS.includes(getSpriteName(tile[row][column])) ) { // left click on numbers
       let number = parseInt(getSpriteName(tile[row][column]));
-      // Count the number of flags and blue flags around the number
+      // Count the number of flags around the number
       let flags = 0;
       let blue_flags = 0;
       let yellow_flags = 0;
+      let green_flags = 0;
       let hiddens = 0;
       for (let [i, j] of getNeighbors(row, column)) {
         if (getSpriteName(tile[i][j]) == 'flag') flags++;
         if (getSpriteName(tile[i][j]) == 'blue_flag') blue_flags++;
         if (getSpriteName(tile[i][j]) == 'yellow_flag') yellow_flags++;
+        if (getSpriteName(tile[i][j]) == 'green_flag') green_flags++;
         if (getSpriteName(tile[i][j]) == 'hidden') hiddens++;
       }
+      if (green_flagged && green_flags > 0 && green_flags < denominator) return; // Ignore if not all green flags are placed around the number
       // If flags + blue_flags == number, turn all neighboring hidden tiles into mist (denote unknown numbers)
-      if (flags + blue_flags + yellow_flags == number) {
+      let flag_count = flags + blue_flags + yellow_flags + numerator;
+      console.log('flag count:', flag_count);
+      if (flag_count == number) {
         for (let [i, j] of getNeighbors(row, column))
           if (getSpriteName(tile[i][j]) == 'hidden') setTile(i, j, 'mist');
-      }else if (flags + blue_flags + hiddens + yellow_flags < number){ // Contradiction found
+      }else if (flag_count + hiddens < number){ // CONTRADICTION found since not enough hidden tiles to satisfy the number
+        exitProofMode(contradiction = true);
+      }else if (flag_count > number){ // CONTRADICTION found since too many flags to satisfy the number  
         exitProofMode(contradiction = true);
       }
+    } // left click on hypothetical safe tile (yellow_0) -> exit proof mode
+    else if (getSpriteName(tile[row][column]) == 'yellow_0') { 
+      exitProofMode();
+    }
+  }
+  // ======== MIDDLE CLICK (non-green_flagged) =========
+  else if (event.which == 2 && !green_flagged){
+    
+    // middle click on numbers
+    if (NUMBERS.includes(getSpriteName(tile[row][column])) ) { 
+      let number = parseInt(getSpriteName(tile[row][column]));
+      // Count the number of hidden tiles around the number
+      let hiddens = 0;
+      let flags = 0;
+      for (let [i, j] of getNeighbors(row, column)) {
+        if (getSpriteName(tile[i][j]) == 'hidden') hiddens++;
+        if (getSpriteName(tile[i][j]) == 'flag') flags++;
+      }
+      if (hiddens <= 1 || number <= flags) {
+        console.log(hiddens, flags, 'Green flagging not possible');
+        return;  // Green flagging not possible
+      }
+        
+      // If hidden + flags = number, flag all hidden tiles
+      numerator = number - flags;  // denominator = hidden;
+      denominator = hiddens;
+      debug.innerHTML = "Number:" + number + ', Hiddens: ' + denominator + ', Flags: ' + flags + ', Probability: ' + (numerator + '/' + denominator) + ' = ' + (numerator/denominator*100).toFixed(2) + '%';
+
+      for (let [i, j] of getNeighbors(row, column)){
+        if (getSpriteName(tile[i][j]) == 'hidden'){
+          setTile(i, j, 'green_flag');
+          overlay[i][j].innerHTML = (numerator + '/' + hiddens);
+        }
+      }
+      green_flagged = true;
     }
     
-}
+  }// ======== MIDDLE CLICK (green_flagged) =========
+  else if (event.which == 2 && green_flagged){ 
+    green_flagged = false;
+    numerator = 0;
+    denominator = 0;
+    debug.innerHTML = "Numerator:" + numerator + ', Denominator: ' + denominator;
+    for (let row = 0; row < rows; row++){  // Remove all green flags
+      for (let column = 0; column < columns; column++){
+        if (getSpriteName(tile[row][column]) == 'green_flag'){
+          setTile(row, column, 'hidden');
+          overlay[row][column].innerHTML = '';
+        }
+      }
+    }
+    if (proof_mode) 
+      exitProofMode();  // Exit proof mode if in proof mode
+  }
 
   status.innerHTML = 'Mines remaining: ' + remaining_mines + ', Hidden numbers: ' + hidden_numbers;
   // Win
@@ -284,7 +378,6 @@ if (event.which == 1 && proof_mode) {
       }
     }
   }
-  console.log('mode: ' + (proof_mode ? 'proof' : 'normal'));
 }
  // Reveal the tile if it is not a mine
 function reveal(row, column) {
