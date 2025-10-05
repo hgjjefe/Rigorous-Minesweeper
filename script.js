@@ -1,4 +1,3 @@
-
 let rows = 15;
 let columns = 15;
 let mines = 20;
@@ -120,7 +119,6 @@ function init(event) {
   first_clicked = false;
   hidden_numbers = 0;
   debug.innerHTML = '';
-  remaining_mines = mines;
   status.innerHTML = 'Click on the tiles to reveal them';
   if (use_layout){   // Adjust rows and columns based on layout
     rows = layout.length;
@@ -178,6 +176,7 @@ function init(event) {
         }
       }
     }
+    remaining_mines = mines;
   }
   
  // Generate numbers
@@ -195,7 +194,8 @@ function init(event) {
           ((check(row, column + 1) == MINE) | 0);
         if (board[row][column] > 0)
           hidden_numbers++;
-      }
+      }else
+        mines++;
     }
   // Generate first click position
   if (!use_layout){
