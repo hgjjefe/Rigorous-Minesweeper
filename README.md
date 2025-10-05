@@ -6,6 +6,7 @@ Similarly, you can left click a hidden tile to create a hypothetical empty space
 
 Pressing middle mouse button on a number will place green flags if there are unflagged neighboring hidden tiles such that they make fractional frags. Green flags can help you reveal nearby tiles that also have all of those green flags as neighbors. If you want to remove the green flags, just press middle mouse button again.
 
-**Credits:**
+**Credits**
+
 The code is based on _The Minesweeper game in 100 lines of JavaScript_:
 https://slicker.me/javascript/mine/minesweeper.htm
